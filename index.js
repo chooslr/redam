@@ -13,7 +13,8 @@ type RenderCallback = () => mixed
 
 type Props = { [key: Key]: PropsValue }
 type State = { [key: Key]: StateValue }
-type InitialState = State | (initialProps: Props, prevState?: State) => State
+type PrevState = void | State
+type InitialState = State | (initialProps: Props, prevState: PrevState) => State
 
 type DispatchResult = Promise<ActionResult>
 type DispatchFn = (name: Name, payload: Payload) => DispatchResult
@@ -72,7 +73,7 @@ const cloneByRecursive = (data: any): any =>
 class Dispatcher {
   actionsMap: ActionsMap
   isAttached: boolean
-  prevState: void | State
+  prevState: PrevState
   initialState: InitialState
   dispatch: DispatchFn
   methods: { props?: PropsFn, state?: StateFn, setState?: SetStateFn, forceUpdate?: ForceUpdateFn }
@@ -81,7 +82,7 @@ class Dispatcher {
     this.actionsMap = actionsMap
     this.isAttached = false
     this.prevState = undefined
-    this.initialState = isFunction(initialState) ? initialState : cloneByRecursive(initialState)
+    this.initialState = initialState
     this.dispatch = (name, value) => this.action(name, value)
     this.methods = {}
   }
@@ -212,9 +213,14 @@ export default (
   asserts(isObject(initialState) || isFunction(initialState), 'redam => initialState must be object || function')
   asserts(isObject(actions) || Array.isArray(actions), 'redam => actions must be object')
   asserts(isFunction(Consumer), 'redam => require Consumer')
-  const create = options.singleton ? createSingletonComponent : createComponent
+
+  initialState = isFunction(initialState)
+    ? initialState
+    : cloneByRecursive(initialState)
+
+  const hoc = options.singleton ? createSingletonComponent : createComponent
   const actionsMap = createActions(actions)
-  return create(Consumer, initialState, actionsMap)
+  return hoc(Consumer, initialState, actionsMap)
 }
 
 const createActions = (actions: Actions | Actions[]): ActionsMap =>

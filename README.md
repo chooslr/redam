@@ -8,6 +8,9 @@
 
 Management state with async actions.
 
+[![image](https://www.ana-cooljapan.com/destinations/img/toyama/kurobedam/main.jpg)](https://www.ana-cooljapan.com/destinations/toyama/kurobedam)
+
+
 ## Installation
 
 ```shell
@@ -49,16 +52,24 @@ export default () => <MyComponent value={10} />
 
 ## API
 ### Redam(initialState, actions, Consumer[, options])
+
+Component is the result.
+
 #### initialState
+
+Set in every mount. `prevState` is passed after second mount if `options.singleton: true`.
+
 ```js
 // as object
 const initialState = { [key]: value }
 // as function
 const initialStateFn = (initialProps[, prevState]) => ({ [key]: value })
 ```
-Set in every mount. `prevState` is passed after second mount if `options.singleton: true`.
 
 #### actions
+
+`{ [name]: action }` or `{ [name]: action }[]`
+
 ```js
 const action = (util) => actionResult
 ```
