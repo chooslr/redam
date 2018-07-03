@@ -12,8 +12,8 @@ export default [
   {
     input,
     output: [
-      { format: 'cjs', file: file('cjs'), exports: 'named' },
-      { format: 'es', file: file('es'), exports: 'named' }
+      { format: 'cjs', file: file('cjs') },
+      { format: 'es', file: file('es') }
     ],
     plugins: [
       flow(),
@@ -24,7 +24,7 @@ export default [
   },
   {
     input,
-    output: { format: 'umd', file: file('min'), name: 'Redam', globals: { react: 'React' }, exports: 'named' },
+    output: { format: 'umd', file: file('min'), name: 'Redam', globals: { react: 'React' } },
     plugins: [
       flow(),
       babel({ exclude: 'node_modules/**' }),

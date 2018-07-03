@@ -39,6 +39,7 @@ const Consumer = ({ provided, value }) =>
 
 export default Redam(initialState, actions, Consumer)
 ```
+
 ```js
 import React from 'react'
 import MyComponent from './MyComponent.js'
@@ -47,17 +48,17 @@ export default () => <MyComponent value={10} />
 ```
 
 ## API
-### Redam(initialState, actions, Consumer)
-#### `initialState`
+### Redam(initialState, actions, Consumer[, options])
+#### initialState
 ```js
 // as object
 const initialState = { [key]: value }
 // as function
-const initialStateFn = (initialProps, prevState) => ({ [key]: value })
+const initialStateFn = (initialProps[, prevState]) => ({ [key]: value })
 ```
-set in every mount. `prevState` is passed after second mount for state inherit.
+Set in every mount. `prevState` is passed after second mount if `options.singleton: true`.
 
-#### `actions`
+#### actions
 ```js
 const action = (util) => actionResult
 ```
@@ -67,16 +68,18 @@ const action = (util) => actionResult
 - [`setState`](https://reactjs.org/docs/react-component.html#setstate)
 - [`forceUpdate`](https://reactjs.org/docs/react-component.html#forceupdate)
 - `dispatch(actionName, payload): Promise<actionResult>`
-- `payload`
+- `payload: any`
 
-#### `Consumer`
+#### Consumer
 ```js
-const Consumer = ({ provided, ...props }) => React$Node
+const Consumer = ({ provided, ...props }) => ReactNode
 ```
 ##### provided
 - `state`
-- `dispatch(actionName, payload): Promise<actionResult>`
+- `dispatch` (same as action util)
 
+#### options
+- `singleton: boolean`
 
 ## License
 
