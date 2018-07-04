@@ -26,7 +26,7 @@ import Redam from 'redam'
 const initialState = { count: 0 }
 
 const actions = {
-  'COUNT_ADD': ({ payload, state, setState }) =>
+  'COUNT_ADD': ({ state, payload, setState }) =>
     state('count')
     .then(count => setState({ count: count + payload.value }, () => console.log('didupdate')))
     .catch(err => console.error(err))
@@ -67,18 +67,26 @@ const initialState = (initialProps[, prevState]) => ({ [key]: value })
 
 #### actions
 
-`{ [name]: action }` or `{ [name]: action }[]`
+`{ [name]: action }` or `{ [name]: action }[]`. (name must be unique)
 
 ```js
-const action = (util) => actionResult
+const action = (utils) => actionResult
 ```
-##### util
+##### utils
 - `props(key[, clone]): Promise<props[key]>`
 - `state(key[, clone]): Promise<state[key]>`
-- [`setState`](https://reactjs.org/docs/react-component.html#setstate)
-- [`forceUpdate`](https://reactjs.org/docs/react-component.html#forceupdate)
+- `setState(updater[, callback]): Promise<void>`
+- `forceUpdate(callback): Promise<void>`
 - `dispatch(actionName, payload): Promise<actionResult>`
 - `payload: any`
+
+[`setState`](https://reactjs.org/docs/react-component.html#setstate) and [`forceUpdate`](https://reactjs.org/docs/react-component.html#forceupdate) return Promise (for make it cancelable) but not to await until "didupdate". If hope so, need to pass `Promise.resolve` as callback.
+```js
+const action = async ({ setState, forceUpdate }) => {
+  await new Promise(resolve => setState(updater, resolve))
+  await new Promise(resolve => forceUpdate(resolve))
+}
+```
 
 #### Consumer
 ```js

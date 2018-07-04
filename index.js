@@ -83,7 +83,7 @@ class Dispatcher {
     this.isAttached = false
     this.prevState = undefined
     this.initialState = initialState
-    this.dispatch = (name, value) => this.action(name, value)
+    this.dispatch = (name, payload) => this.action(name, payload)
     this.methods = {}
   }
 
