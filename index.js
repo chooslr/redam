@@ -87,7 +87,7 @@ class Dispatcher {
     this.methods = {}
   }
 
-  fn2cancelable<R>(fn: (...arg: *) => R): CancelableFn<R> {
+  makeCancelable<R>(fn: (...arg: *) => R): CancelableFn<R> {
     return (...arg) =>
       new Promise((resolve, reject) =>
         this.isAttached
@@ -116,18 +116,22 @@ class Dispatcher {
     const forceUpdate = (...arg) =>
       instance.forceUpdate(...arg)
 
-    this.methods.props = this.fn2cancelable(props)
-    this.methods.state = this.fn2cancelable(state)
-    this.methods.setState = this.fn2cancelable(setState)
-    this.methods.forceUpdate = this.fn2cancelable(forceUpdate)
+    this.methods.props = this.makeCancelable(props)
+    this.methods.state = this.makeCancelable(state)
+    this.methods.setState = this.makeCancelable(setState)
+    this.methods.forceUpdate = this.makeCancelable(forceUpdate)
 
     this.isAttached = true
   }
 
-  detach(instance?: RedamSingletonProvider): void {
+  detach(): void {
     this.isAttached = false
-    this.prevState = instance && instance.state
     Object.keys(this.methods).forEach(key => delete this.methods[key])
+  }
+
+  detachSingleton(instance: RedamSingletonProvider): void {
+    this.detach()
+    this.prevState = instance.state
   }
 
   action(name: Name, payload: Payload): DispatchResult {
@@ -148,7 +152,18 @@ class Dispatcher {
   }
 }
 
-// Components
+const actions2map = (actions: Actions | Actions[]): ActionsMap =>
+  new Map(
+    (Array.isArray(actions) ? actions : [actions])
+    .map(Object.entries)
+    .reduce((a, entries) => a.concat(entries), [])
+    .map(([ name, action ]) =>
+      !isFunction(action)
+      ? throws(`redam => ${name} is not function`)
+      : [ name, action ]
+    )
+  )
+
 type ConsumerComponent = React$ComponentType<{
   [key: Key]: PropsValue,
   provided: {
@@ -156,6 +171,32 @@ type ConsumerComponent = React$ComponentType<{
     dispatch: DispatchFn
   }
 }>
+
+type Options = {
+  singleton?: boolean
+}
+
+export default (
+  initialState: InitialState,
+  actions: Actions | Actions[],
+  Consumer: ConsumerComponent,
+  options: Options = {}
+): React$StatelessFunctionalComponent<Props> => {
+  asserts(isObject(initialState) || isFunction(initialState), 'redam => initialState must be object || function')
+  asserts(isObject(actions) || Array.isArray(actions), 'redam => actions must be object')
+  asserts(isFunction(Consumer), 'redam => require Consumer')
+
+  initialState = isFunction(initialState) ? initialState : cloneByRecursive(initialState)
+
+  return options.singleton
+  ? createSingletonComponent(Consumer, new Dispatcher(initialState, actions2map(actions)))
+  : createComponent(Consumer, initialState, actions2map(actions))
+}
+
+const createComponent = (Consumer, initialState, actionsMap) => {
+  const RedamComponent = (props) => <RedamProvider {...{ props, Consumer, initialState, actionsMap }} />
+  return RedamComponent
+}
 
 type ProviderProps = {
   [key: Key]: PropsValue,
@@ -180,6 +221,12 @@ class RedamProvider extends React.Component<ProviderProps, State> {
   }
 }
 
+const createSingletonComponent = (Consumer, dispatcher) => {
+  const RedamSingletonComponent = (props) => <RedamSingletonProvider {...{ props, Consumer, dispatcher }} />
+  RedamSingletonComponent.dispatch = dispatcher.dispatch
+  return RedamSingletonComponent
+}
+
 type SingletonProviderProps = {
   [key: Key]: PropsValue,
   Consumer: ConsumerComponent,
@@ -192,57 +239,10 @@ class RedamSingletonProvider extends React.Component<SingletonProviderProps, Sta
     this.props.dispatcher.attach(this)
   }
   componentWillUnmount(): void {
-    this.props.dispatcher.detach(this)
+    this.props.dispatcher.detachSingleton(this)
   }
   render() {
     const { props: { Consumer, props, dispatcher: { dispatch } }, state } = this
     return <Consumer {...props} provided={{ dispatch, state }} />
   }
-}
-
-type Options = {
-  singleton?: boolean
-}
-
-export default (
-  initialState: InitialState,
-  actions: Actions | Actions[],
-  Consumer: ConsumerComponent,
-  options: Options = {}
-): React$StatelessFunctionalComponent<Props> => {
-  asserts(isObject(initialState) || isFunction(initialState), 'redam => initialState must be object || function')
-  asserts(isObject(actions) || Array.isArray(actions), 'redam => actions must be object')
-  asserts(isFunction(Consumer), 'redam => require Consumer')
-
-  initialState = isFunction(initialState)
-    ? initialState
-    : cloneByRecursive(initialState)
-
-  const hoc = options.singleton ? createSingletonComponent : createComponent
-  const actionsMap = createActions(actions)
-  return hoc(Consumer, initialState, actionsMap)
-}
-
-const createActions = (actions: Actions | Actions[]): ActionsMap =>
-  new Map(
-    (Array.isArray(actions) ? actions : [actions])
-    .map(Object.entries)
-    .reduce((a, entries) => a.concat(entries), [])
-    .map(([ name, action ]) =>
-      !isFunction(action)
-      ? throws(`redam => ${name} is not function`)
-      : [ name, action ]
-    )
-  )
-
-const createComponent = (Consumer, initialState, actionsMap) => {
-  const RedamComponent = (props) => <RedamProvider {...{ Consumer, props, initialState, actionsMap }} />
-  return RedamComponent
-}
-
-const createSingletonComponent = (Consumer, initialState, actionsMap) => {
-  const dispatcher = new Dispatcher(initialState, actionsMap)
-  const RedamSingletonComponent = (props) => <RedamSingletonProvider {...{ Consumer, props, dispatcher }} />
-  RedamSingletonComponent.dispatch = dispatcher.dispatch
-  return RedamSingletonComponent
 }

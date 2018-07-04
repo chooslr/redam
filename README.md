@@ -28,8 +28,7 @@ const initialState = { count: 0 }
 const actions = {
   'COUNT_ADD': ({ payload, state, setState }) =>
     state('count')
-    .then(count => count + payload.value)
-    .then(count => setState({ count }, () => console.log('didupdate')))
+    .then(count => setState({ count: count + payload.value }, () => console.log('didupdate')))
     .catch(err => console.error(err))
 }
 
@@ -63,7 +62,7 @@ Set in every mount. `prevState` is passed after second mount if `options.singlet
 // as object
 const initialState = { [key]: value }
 // as function
-const initialStateFn = (initialProps[, prevState]) => ({ [key]: value })
+const initialState = (initialProps[, prevState]) => ({ [key]: value })
 ```
 
 #### actions

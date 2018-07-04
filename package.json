@@ -1,6 +1,6 @@
 {
   "name": "redam",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "repository": "chooslr/redam",
   "author": "kthjm <toxictoxer@gmail.com>",
   "license": "MIT",
@@ -10,9 +10,11 @@
   "description": "Management state with async actions.",
   "keywords": [
     "react",
-    "state",
     "store",
-    "model"
+    "model",
+    "state",
+    "state machine",
+    "flux"
   ],
   "nyc": {
     "require": [

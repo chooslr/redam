@@ -84,7 +84,7 @@ describe('e2e', () => {
         .then(() => payload.wrapper.unmount())
         .then(() => forceUpdate())
         .then(() => assert.ok(false))
-        .catch(err => assert.ok(err))
+        .catch(err => assert.ok(true)) // redam => still unmounted
       )
 
       .then(payload.resolve)
