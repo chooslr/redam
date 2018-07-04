@@ -129,9 +129,9 @@ class Dispatcher {
     Object.keys(this.methods).forEach(key => delete this.methods[key])
   }
 
-  detachSingleton(instance: RedamSingletonProvider): void {
+  detachSingleton(prevState: State): void {
     this.detach()
-    this.prevState = instance.state
+    this.prevState = prevState
   }
 
   action(name: Name, payload: Payload): DispatchResult {
@@ -183,8 +183,8 @@ export default (
   options: Options = {}
 ): React$StatelessFunctionalComponent<Props> => {
   asserts(isObject(initialState) || isFunction(initialState), 'redam => initialState must be object || function')
-  asserts(isObject(actions) || Array.isArray(actions), 'redam => actions must be object')
-  asserts(isFunction(Consumer), 'redam => require Consumer')
+  asserts(isObject(actions) || Array.isArray(actions), 'redam => actions must be object || array')
+  asserts(isFunction(Consumer), 'redam => Consumer is required')
 
   initialState = isFunction(initialState) ? initialState : cloneByRecursive(initialState)
 
@@ -239,7 +239,7 @@ class RedamSingletonProvider extends React.Component<SingletonProviderProps, Sta
     this.props.dispatcher.attach(this)
   }
   componentWillUnmount(): void {
-    this.props.dispatcher.detachSingleton(this)
+    this.props.dispatcher.detachSingleton(this.state)
   }
   render() {
     const { props: { Consumer, props, dispatcher: { dispatch } }, state } = this
