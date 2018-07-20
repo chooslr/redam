@@ -6,10 +6,7 @@
 [![Coverage Status](https://img.shields.io/codecov/c/github/chooslr/redam.svg?longCache=true&style=flat-square)](https://codecov.io/github/chooslr/redam)
 [![cdn](https://img.shields.io/badge/jsdelivr-latest-e84d3c.svg?longCache=true&style=flat-square)](https://cdn.jsdelivr.net/npm/redam/dist/min.js)
 
-Management state with async actions.
-
-[![image](https://www.ana-cooljapan.com/destinations/img/toyama/kurobedam/main.jpg)](https://www.ana-cooljapan.com/destinations/toyama/kurobedam)
-
+Tiny hoc that creates container component.
 
 ## Installation
 
@@ -28,15 +25,19 @@ const initialState = { count: 0 }
 const actions = {
   'COUNT_ADD': ({ state, payload, setState }) =>
     state('count')
-    .then(count => setState({ count: count + payload.value }, () => console.log('didupdate')))
+    .then(count => setState({ count: count + payload.value }))
     .catch(err => console.error(err))
 }
 
 const Consumer = ({ provided, value }) =>
 <main>
-  <h1>{provided.state.count}</h1>
-  <button onClick={(e) => provided.dispatch('COUNT_ADD', { value: +value })}>+</button>
-  <button onClick={(e) => provided.dispatch('COUNT_ADD', { value: -value })}>-</button>
+  <h1>{`count is ${provided.state.count}`}</h1>
+  <button onClick={() => provided.dispatch('COUNT_ADD', { value: +value })}>
+    {'+'}
+  </button>
+  <button onClick={() => provided.dispatch('COUNT_ADD', { value: -value })}>
+    {'-'}
+  </button>
 </main>
 
 export default Redam(initialState, actions, Consumer)
@@ -46,7 +47,11 @@ export default Redam(initialState, actions, Consumer)
 import React from 'react'
 import MyComponent from './MyComponent.js'
 
-export default () => <MyComponent value={10} />
+export default () =>
+<div>
+  <MyComponent value={10} />
+  <MyComponent value={20} />
+</div>
 ```
 
 ## API
