@@ -7,7 +7,7 @@
   "main": "dist/cjs.js",
   "jsnext:main": "dist/es.js",
   "module": "dist/es.js",
-  "description": "Management state with async actions.",
+  "description": "Tiny hoc that creates container with actions.",
   "keywords": [
     "react",
     "store",
