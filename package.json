@@ -1,13 +1,13 @@
 {
   "name": "redam",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "repository": "chooslr/redam",
   "author": "kthjm <toxictoxer@gmail.com>",
   "license": "MIT",
   "main": "dist/cjs.js",
   "jsnext:main": "dist/es.js",
   "module": "dist/es.js",
-  "description": "Management state with async actions.",
+  "description": "Tiny hoc that creates container with actions.",
   "keywords": [
     "react",
     "store",
