@@ -21,8 +21,15 @@ type DispatchFn = (name: Name, payload: Payload) => DispatchResult
 
 type PropsFn = (key: Key, reference?: Reference) => Promise<PropsValue>
 type StateFn = (key: Key, reference?: Reference) => Promise<StateValue>
-type SetStateFn = (partialState: $Shape<State> | ((State, Props) => $Shape<State> | void), callback: RenderCallback) => Promise<void>
-type ForceUpdateFn = (callback: RenderCallback) => Promise<void>
+
+type SetStateFn = (
+  partialState: $Shape<State> | ((State, Props) => $Shape<State> | void),
+  callback: RenderCallback
+) => Promise<void>
+
+type ForceUpdateFn = (
+  callback: RenderCallback
+) => Promise<void>
 
 type CancelableFn<R> = (...arg: any) => CancelableResult<R>
 type CancelableResult<R> = Promise<R>
@@ -44,7 +51,8 @@ type ActionsMap = Map<Name, Action>
 
 // utils
 const throws = (message) => { throw new Error(message) }
-const asserts = (condition: boolean, message: string): false | void => !condition && throws(message)
+const asserts = (condition: boolean, message: string): false | void =>
+  !condition && throws(message)
 
 const isReturn = (data: any): boolean %checks =>
   typeof data !== 'object' ||
@@ -168,20 +176,26 @@ const actions2map = (actions: Actions | Actions[]): ActionsMap =>
     )
   )
 
-type ConsumerComponent = React$ComponentType<{
-  [key: Key]: PropsValue,
-  provided: {
-    state: State,
-    dispatch: DispatchFn
-  }
-}>
-
 type ProvidedKey = string
+
+type Provided = {
+  state: State,
+  dispatch: DispatchFn
+}
+
+type ConsumerProps = {
+  [key: Key]: PropsValue,
+  [providedKey: ProvidedKey]: Provided
+}
+
+type ConsumerComponent = React$ComponentType<ConsumerProps>
 
 type Options = {
   singleton?: boolean,
   providedKey?: ProvidedKey,
 }
+
+const PROVIDED_KEY = 'provided'
 
 export default (
   initialState: InitialState,
@@ -211,9 +225,9 @@ export default (
   ? createSingletonComponent
   : createComponent
   
-  const providedKey = options['providedKey'] || 'provided'
-  
-  return hoc(Consumer, initialState, actions2map(actions), { providedKey })
+  return hoc(Consumer, initialState, actions2map(actions), {
+    providedKey: options['providedKey'] || PROVIDED_KEY
+  })
 }
 
 const createComponent = (Consumer, initialState, actionsMap, options) => {
@@ -230,7 +244,6 @@ const createComponent = (Consumer, initialState, actionsMap, options) => {
 }
 
 type ProviderProps = {
-  [key: Key]: PropsValue,
   userProps: Props,
   Consumer: ConsumerComponent,
   initialState: InitialState,
@@ -261,7 +274,10 @@ class RedamProvider extends React.Component<ProviderProps, State> {
       },
     } = this
     
-    return <Consumer {...userProps} {...{ [providedKey]: { dispatch, state } }} />
+    return <Consumer
+      {...userProps}
+      {...{ [providedKey]: { dispatch, state } }}
+    />
   }
 }
 
@@ -281,7 +297,6 @@ const createSingletonComponent = (Consumer, initialState, actionsMap, options) =
 }
 
 type SingletonProviderProps = {
-  [key: Key]: PropsValue,
   userProps: Props,
   Consumer: ConsumerComponent,
   dispatcher: Dispatcher,
@@ -309,6 +324,9 @@ class RedamSingletonProvider extends React.Component<SingletonProviderProps, Sta
       }
     } = this
     
-    return <Consumer {...userProps} {...{ [providedKey]: { dispatch, state } }} />
+    return <Consumer
+      {...userProps}
+      {...{ [providedKey]: { dispatch, state } }}
+    />
   }
 }
