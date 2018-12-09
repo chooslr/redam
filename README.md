@@ -5,8 +5,9 @@
 [![CircleCI](https://img.shields.io/circleci/project/github/chooslr/redam.svg?longCache=true&style=flat-square)](https://circleci.com/gh/chooslr/redam)
 [![Coverage Status](https://img.shields.io/codecov/c/github/chooslr/redam.svg?longCache=true&style=flat-square)](https://codecov.io/github/chooslr/redam)
 [![cdn](https://img.shields.io/badge/jsdelivr-latest-e84d3c.svg?longCache=true&style=flat-square)](https://cdn.jsdelivr.net/npm/redam/dist/min.js)
+[![jspm](https://img.shields.io/badge/jspm-latest-fcea6d.svg?longCache=true&style=flat-square)](https://dev.jspm.io/redam)
 
-Tiny hoc that creates container with actions.
+Tiny hoc for container.
 
 ## Installation
 
@@ -27,6 +28,7 @@ const actions = {
     state('count')
     .then(count => setState({ count: count + payload.value }))
     .catch(err => console.error(err)),
+    
   down: ({ state, payload, setState }) =>
     state('count')
     .then(count => setState({ count: count - payload.value }))
@@ -44,7 +46,9 @@ const Consumer = ({ provided, value }) =>
   </button>
 </main>
 
-export default Redam(initialState, actions, Consumer)
+const MyComponent = Redam(initialState, actions, Consumer)
+
+export default MyComponent
 ```
 
 ```js
@@ -55,6 +59,7 @@ export default () =>
 <div>
   <MyComponent value={10} />
   <MyComponent value={20} />
+  <MyComponent value={30} />
 </div>
 ```
 
@@ -106,10 +111,11 @@ const Consumer = ({ provided, ...props }) => ReactNode
 ```
 ##### provided
 - `state`
-- `dispatch` (same as action util)
+- `dispatch` (same as action's util)
 
 #### options
-- `singleton: boolean`
+- `singleton: boolean = false`
+- `providedKey: string = 'provided'`
 
 ## License
 
