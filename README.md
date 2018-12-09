@@ -5,7 +5,7 @@
 [![CircleCI](https://img.shields.io/circleci/project/github/chooslr/redam.svg?longCache=true&style=flat-square)](https://circleci.com/gh/chooslr/redam)
 [![Coverage Status](https://img.shields.io/codecov/c/github/chooslr/redam.svg?longCache=true&style=flat-square)](https://codecov.io/github/chooslr/redam)
 [![cdn](https://img.shields.io/badge/jsdelivr-latest-e84d3c.svg?longCache=true&style=flat-square)](https://cdn.jsdelivr.net/npm/redam/dist/min.js)
-[![jspm](https://img.shields.io/badge/jspm-latest-fcea6d.svg?longCache=true&style=flat-square)](https://dev.jspm.io/redam)
+[![jspm](https://img.shields.io/badge/jspm-latest-ffe951.svg?longCache=true&style=flat-square)](https://dev.jspm.io/redam)
 
 Tiny hoc for container.
 
@@ -104,7 +104,7 @@ const action = async ({ setState, forceUpdate }) => {
 
 #### Consumer
 
-Component that is passed props containing `provided`.
+Component that is passed props containing `provided` (configable via options).
 
 ```js
 const Consumer = ({ provided, ...props }) => ReactNode
