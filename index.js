@@ -21,8 +21,15 @@ type DispatchFn = (name: Name, payload: Payload) => DispatchResult
 
 type PropsFn = (key: Key, reference?: Reference) => Promise<PropsValue>
 type StateFn = (key: Key, reference?: Reference) => Promise<StateValue>
-type SetStateFn = (partialState: $Shape<State> | ((State, Props) => $Shape<State> | void), callback: RenderCallback) => Promise<void>
-type ForceUpdateFn = (callback: RenderCallback) => Promise<void>
+
+type SetStateFn = (
+  partialState: $Shape<State> | ((State, Props) => $Shape<State> | void),
+  callback: RenderCallback
+) => Promise<void>
+
+type ForceUpdateFn = (
+  callback: RenderCallback
+) => Promise<void>
 
 type CancelableFn<R> = (...arg: any) => CancelableResult<R>
 type CancelableResult<R> = Promise<R>
@@ -44,7 +51,8 @@ type ActionsMap = Map<Name, Action>
 
 // utils
 const throws = (message) => { throw new Error(message) }
-const asserts = (condition: boolean, message: string): false | void => !condition && throws(message)
+const asserts = (condition: boolean, message: string): false | void =>
+  !condition && throws(message)
 
 const isReturn = (data: any): boolean %checks =>
   typeof data !== 'object' ||
@@ -92,23 +100,27 @@ class Dispatcher {
       new Promise((resolve, reject) =>
         this.isAttached
           ? resolve(fn(...arg))
-          : reject(new Error('redam => still unmounted'))
+          : reject(new Error('[redam] still unmounted'))
       )
   }
 
   attach(instance: RedamProvider | RedamSingletonProvider): void {
 
-    asserts(!this.isAttached, 'redam => dispatcher duplicated in tree')
+    asserts(!this.isAttached, '[redam] dispatcher duplicated in tree')
 
     instance.state = isFunction(this.initialState)
-      ? this.initialState(instance.props.props, this.prevState)
+      ? this.initialState(instance.props['userProps'], this.prevState)
       : this.initialState
 
     const props = (key, clone) =>
-      clone ? cloneByRecursive(instance.props.props[key]) : instance.props.props[key]
+      clone
+      ? cloneByRecursive(instance.props['userProps'][key])
+      : instance.props['userProps'][key]
 
     const state = (key, clone) =>
-      clone ? cloneByRecursive(instance.state[key]) : instance.state[key]
+      clone
+      ? cloneByRecursive(instance.state[key])
+      : instance.state[key]
 
     const setState = (...arg) =>
       instance.setState(...arg)
@@ -141,7 +153,7 @@ class Dispatcher {
     }
 
     try {
-      asserts(this.actionsMap.has(name), `redam => ${name} is not registerd as action`)
+      asserts(this.actionsMap.has(name), `[redam] ${name} is not registerd as action`)
       const action: any = this.actionsMap.get(name);(action: Action)
       const { dispatch, methods: { props, state, setState, forceUpdate } } = this
       const result = action({ payload, dispatch, props, state, setState, forceUpdate })
@@ -159,22 +171,28 @@ const actions2map = (actions: Actions | Actions[]): ActionsMap =>
     .reduce((a, entries) => a.concat(entries), [])
     .map(([ name, action ]) =>
       !isFunction(action)
-      ? throws(`redam => ${name} is not function`)
+      ? throws(`[redam] ${name} is not function`)
       : [ name, action ]
     )
   )
 
-type ConsumerComponent = React$ComponentType<{
-  [key: Key]: PropsValue,
-  provided: {
-    state: State,
-    dispatch: DispatchFn
-  }
-}>
+type ProvidedKey = string
+
+type Provided = {
+  state: State,
+  dispatch: DispatchFn
+}
+
+type ConsumerProps = { [key: Key]: Provided | PropsValue }
+
+type ConsumerComponent = React$ComponentType<ConsumerProps>
 
 type Options = {
-  singleton?: boolean
+  singleton?: boolean,
+  providedKey?: ProvidedKey,
 }
+
+const PROVIDED_KEY = 'provided'
 
 export default (
   initialState: InitialState,
@@ -182,27 +200,54 @@ export default (
   Consumer: ConsumerComponent,
   options: Options = {}
 ): React$StatelessFunctionalComponent<Props> => {
-  asserts(isObject(initialState) || isFunction(initialState), 'redam => initialState must be object || function')
-  asserts(isObject(actions) || Array.isArray(actions), 'redam => actions must be object || array')
-  asserts(isFunction(Consumer), 'redam => Consumer is required')
+  
+  asserts(
+    isObject(initialState) || isFunction(initialState),
+    '[redam] initialState must be object || function')
+  asserts(
+    isObject(actions) || Array.isArray(actions),
+    '[redam] actions must be object || array')
+  asserts(
+    isFunction(Consumer),
+    '[redam] Consumer is required')
+  asserts(
+    !options['providedKey'] || typeof options['providedKey'] === 'string',
+    '[redam] providedKey must be string')
 
-  initialState = isFunction(initialState) ? initialState : cloneByRecursive(initialState)
-
-  return options.singleton
-  ? createSingletonComponent(Consumer, new Dispatcher(initialState, actions2map(actions)))
-  : createComponent(Consumer, initialState, actions2map(actions))
+  initialState = isFunction(initialState)
+  ? initialState
+  : cloneByRecursive(initialState)
+  
+  const hoc = options.singleton
+  ? createSingletonComponent
+  : createComponent
+  
+  return hoc(Consumer, initialState, actions2map(actions), {
+    providedKey: options['providedKey'] || PROVIDED_KEY
+  })
 }
 
-const createComponent = (Consumer, initialState, actionsMap) => {
-  const RedamComponent = (props) => <RedamProvider {...{ props, Consumer, initialState, actionsMap }} />
+const createComponent = (Consumer, initialState, actionsMap, options) => {
+  const RedamComponent = (userProps) =>
+  <RedamProvider {...{
+    userProps,
+    Consumer,
+    initialState,
+    actionsMap,
+    options
+  }} />
+  
   return RedamComponent
 }
 
 type ProviderProps = {
-  [key: Key]: PropsValue,
+  userProps: Props,
   Consumer: ConsumerComponent,
   initialState: InitialState,
-  actionsMap: ActionsMap
+  actionsMap: ActionsMap,
+  options: {
+    providedKey: ProvidedKey
+  }
 }
 
 class RedamProvider extends React.Component<ProviderProps, State> {
@@ -216,25 +261,49 @@ class RedamProvider extends React.Component<ProviderProps, State> {
     this.dispatcher.detach()
   }
   render() {
-    const { props: { Consumer, props }, dispatcher: { dispatch }, state } = this
-    return <Consumer {...props} provided={{ dispatch, state }} />
+    const {
+      state,
+      dispatcher: { dispatch },
+      props: {
+        Consumer,
+        userProps,
+        options: { providedKey }
+      },
+    } = this
+    
+    return <Consumer
+      {...userProps}
+      {...{ [providedKey]: { dispatch, state } }}
+    />
   }
 }
 
-const createSingletonComponent = (Consumer, dispatcher) => {
-  const RedamSingletonComponent = (props) => <RedamSingletonProvider {...{ props, Consumer, dispatcher }} />
+const createSingletonComponent = (Consumer, initialState, actionsMap, options) => {
+  const dispatcher = new Dispatcher(initialState, actionsMap)
+  
+  const RedamSingletonComponent = (userProps) =>
+  <RedamSingletonProvider {...{
+    userProps,
+    Consumer,
+    dispatcher,
+    options
+  }} />
+  
   RedamSingletonComponent.dispatch = dispatcher.dispatch
   return RedamSingletonComponent
 }
 
 type SingletonProviderProps = {
-  [key: Key]: PropsValue,
+  userProps: Props,
   Consumer: ConsumerComponent,
-  dispatcher: Dispatcher
+  dispatcher: Dispatcher,
+  options: {
+    providedKey: ProvidedKey
+  }
 }
 
 class RedamSingletonProvider extends React.Component<SingletonProviderProps, State> {
-  constructor(props: ProviderProps): void {
+  constructor(props: SingletonProviderProps): void {
     super(props)
     this.props.dispatcher.attach(this)
   }
@@ -242,7 +311,19 @@ class RedamSingletonProvider extends React.Component<SingletonProviderProps, Sta
     this.props.dispatcher.detachSingleton(this.state)
   }
   render() {
-    const { props: { Consumer, props, dispatcher: { dispatch } }, state } = this
-    return <Consumer {...props} provided={{ dispatch, state }} />
+    const {
+      state,
+      props: {
+        Consumer,
+        userProps,
+        dispatcher: { dispatch },
+        options: { providedKey }
+      }
+    } = this
+    
+    return <Consumer
+      {...userProps}
+      {...{ [providedKey]: { dispatch, state } }}
+    />
   }
 }

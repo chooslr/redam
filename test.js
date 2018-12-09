@@ -15,7 +15,7 @@ describe('cloneByRecursive', () => {
 })
 
 describe('Redam() => throws', () => {
-  const test = (...arg) => () => assert.throws(() => Redam(...arg), /redam /)
+  const test = (...arg) => () => assert.throws(() => Redam(...arg), /[redam] /)
   const initialState = {}
   const actions = {}
   it('!initialState', test(undefined))
@@ -46,21 +46,18 @@ describe('duplicated => singleton === shouldThrowd', () => {
 
 describe('e2e', () => {
 
-  const test = (options, type) => () => {
+  const test = (options = {}) => () => {
     const initialState = { count: 0 }
 
     const TEST = ({ props, state, payload, setState, forceUpdate, dispatch }) =>
       Promise.resolve()
-
       .then(() =>
         assert.equal(payload.persist.callCount, 1)
       )
-
       .then(() =>
         props('value')
         .then(value => assert.equal(value, payload.value))
       )
-
       .then(() =>
         state('count')
         .then(count => count + payload.value)
@@ -68,17 +65,14 @@ describe('e2e', () => {
         .then(() => state('count'))
         .then(count => assert.equal(count, 0 + payload.value))
       )
-
       .then(() =>
         new Promise(resolve => forceUpdate(resolve))
       )
-
       .then(() =>
         dispatch('INVALID_NAME')
         .then(() => assert.ok(false))
         .catch(err => assert.ok(err))
       )
-
       .then(() =>
         Promise.resolve()
         .then(() => payload.wrapper.unmount())
@@ -86,23 +80,39 @@ describe('e2e', () => {
         .then(() => assert.ok(false))
         .catch(err => assert.ok(true)) // redam => still unmounted
       )
-
       .then(payload.resolve)
       .catch(payload.reject)
 
-    const Consumer = ({ value, provided: { state, dispatch } }) =>
-      <main>
-        <h1>{state.count}</h1>
-        <button {...{
-          id: 'test',
-          onClick: (simulated) => dispatch('TEST', Object.assign({ value: +value }, simulated))
-        }} />
-      </main>
+    const Consumer = ({
+      value,
+      [options.providedKey || 'provided']: {
+        state,
+        dispatch
+      }
+    }) =>
+    <main>
+      <h1>{state.count}</h1>
+      <button {...{
+        id: 'test',
+        onClick: (simulated) => dispatch('TEST', Object.assign({ value: +value }, simulated))
+      }} />
+    </main>
 
-    const Component = Redam(initialState, { TEST }, Consumer, options)
-    assert.ok(typeof Component.dispatch === type)
+    const Component = Redam(
+      initialState,
+      { TEST },
+      Consumer,
+      options
+    )
+    
+    assert.ok(
+      options.singleton
+      ? typeof Component.dispatch === 'function'
+      : typeof Component.dispatch === 'undefined'
+    )
 
     const wrapper = Enzyme.mount(<Component {...{ value: 5 }} />)
+    
     return new Promise((resolve, reject) =>
       wrapper
       .find(`#test`)
@@ -115,6 +125,7 @@ describe('e2e', () => {
     )
   }
 
-  it('singleton: false', test({ singleton: false }, 'undefined'))
-  it('singleton: true', test({ singleton: true }, 'function'))
+  it('{}', test())
+  it('{ singleton: true }', test({ singleton: true }))
+  it('{ providedKey: string }', test({ providedKey: 'hoge' }))
 })
