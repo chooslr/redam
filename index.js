@@ -186,15 +186,29 @@ export default (
   asserts(isObject(actions) || Array.isArray(actions), 'redam => actions must be object || array')
   asserts(isFunction(Consumer), 'redam => Consumer is required')
 
-  initialState = isFunction(initialState) ? initialState : cloneByRecursive(initialState)
-
-  return options.singleton
-  ? createSingletonComponent(Consumer, new Dispatcher(initialState, actions2map(actions)))
-  : createComponent(Consumer, initialState, actions2map(actions))
+  initialState = isFunction(initialState)
+  ? initialState
+  : cloneByRecursive(initialState)
+  
+  const hoc = options.singleton
+  ? createSingletonComponent
+  : createComponent
+  
+  const providedKey = options['providedKey'] || 'provided'
+  
+  return hoc(Consumer, initialState, actions2map(actions), { providedKey })
 }
 
-const createComponent = (Consumer, initialState, actionsMap) => {
-  const RedamComponent = (props) => <RedamProvider {...{ props, Consumer, initialState, actionsMap }} />
+const createComponent = (Consumer, initialState, actionsMap, options) => {
+  const RedamComponent = (props) =>
+  <RedamProvider {...{
+    props,
+    Consumer,
+    initialState,
+    actionsMap,
+    options
+  }} />
+  
   return RedamComponent
 }
 
@@ -216,13 +230,31 @@ class RedamProvider extends React.Component<ProviderProps, State> {
     this.dispatcher.detach()
   }
   render() {
-    const { props: { Consumer, props }, dispatcher: { dispatch }, state } = this
-    return <Consumer {...props} provided={{ dispatch, state }} />
+    const {
+      state,
+      dispatcher: { dispatch },
+      props: {
+        Consumer,
+        props,
+        options: { providedKey }
+      },
+    } = this
+    
+    return <Consumer {...props} {...{ [providedKey]: { dispatch, state } }} />
   }
 }
 
-const createSingletonComponent = (Consumer, dispatcher) => {
-  const RedamSingletonComponent = (props) => <RedamSingletonProvider {...{ props, Consumer, dispatcher }} />
+const createSingletonComponent = (Consumer, initialState, actionsMap, options) => {
+  const dispatcher = new Dispatcher(initialState, actionsMap)
+  
+  const RedamSingletonComponent = (props) =>
+  <RedamSingletonProvider {...{
+    props,
+    Consumer,
+    dispatcher,
+    options
+  }} />
+  
   RedamSingletonComponent.dispatch = dispatcher.dispatch
   return RedamSingletonComponent
 }
@@ -242,7 +274,16 @@ class RedamSingletonProvider extends React.Component<SingletonProviderProps, Sta
     this.props.dispatcher.detachSingleton(this.state)
   }
   render() {
-    const { props: { Consumer, props, dispatcher: { dispatch } }, state } = this
-    return <Consumer {...props} provided={{ dispatch, state }} />
+    const {
+      state,
+      props: {
+        Consumer,
+        props,
+        dispatcher: { dispatch },
+        options: { providedKey }
+      }
+    } = this
+    
+    return <Consumer {...props} {...{ [providedKey]: { dispatch, state } }} />
   }
 }
