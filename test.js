@@ -15,7 +15,7 @@ describe('cloneByRecursive', () => {
 })
 
 describe('Redam() => throws', () => {
-  const test = (...arg) => () => assert.throws(() => Redam(...arg), /redam /)
+  const test = (...arg) => () => assert.throws(() => Redam(...arg), /[redam] /)
   const initialState = {}
   const actions = {}
   it('!initialState', test(undefined))

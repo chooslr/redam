@@ -92,23 +92,27 @@ class Dispatcher {
       new Promise((resolve, reject) =>
         this.isAttached
           ? resolve(fn(...arg))
-          : reject(new Error('redam => still unmounted'))
+          : reject(new Error('[redam] still unmounted'))
       )
   }
 
   attach(instance: RedamProvider | RedamSingletonProvider): void {
 
-    asserts(!this.isAttached, 'redam => dispatcher duplicated in tree')
+    asserts(!this.isAttached, '[redam] dispatcher duplicated in tree')
 
     instance.state = isFunction(this.initialState)
-      ? this.initialState(instance.props.props, this.prevState)
+      ? this.initialState(instance.props['userProps'], this.prevState)
       : this.initialState
 
     const props = (key, clone) =>
-      clone ? cloneByRecursive(instance.props.props[key]) : instance.props.props[key]
+      clone
+      ? cloneByRecursive(instance.props['userProps'][key])
+      : instance.props['userProps'][key]
 
     const state = (key, clone) =>
-      clone ? cloneByRecursive(instance.state[key]) : instance.state[key]
+      clone
+      ? cloneByRecursive(instance.state[key])
+      : instance.state[key]
 
     const setState = (...arg) =>
       instance.setState(...arg)
@@ -141,7 +145,7 @@ class Dispatcher {
     }
 
     try {
-      asserts(this.actionsMap.has(name), `redam => ${name} is not registerd as action`)
+      asserts(this.actionsMap.has(name), `[redam] ${name} is not registerd as action`)
       const action: any = this.actionsMap.get(name);(action: Action)
       const { dispatch, methods: { props, state, setState, forceUpdate } } = this
       const result = action({ payload, dispatch, props, state, setState, forceUpdate })
@@ -159,7 +163,7 @@ const actions2map = (actions: Actions | Actions[]): ActionsMap =>
     .reduce((a, entries) => a.concat(entries), [])
     .map(([ name, action ]) =>
       !isFunction(action)
-      ? throws(`redam => ${name} is not function`)
+      ? throws(`[redam] ${name} is not function`)
       : [ name, action ]
     )
   )
@@ -172,8 +176,11 @@ type ConsumerComponent = React$ComponentType<{
   }
 }>
 
+type ProvidedKey = string
+
 type Options = {
-  singleton?: boolean
+  singleton?: boolean,
+  providedKey?: ProvidedKey,
 }
 
 export default (
@@ -182,9 +189,19 @@ export default (
   Consumer: ConsumerComponent,
   options: Options = {}
 ): React$StatelessFunctionalComponent<Props> => {
-  asserts(isObject(initialState) || isFunction(initialState), 'redam => initialState must be object || function')
-  asserts(isObject(actions) || Array.isArray(actions), 'redam => actions must be object || array')
-  asserts(isFunction(Consumer), 'redam => Consumer is required')
+  
+  asserts(
+    isObject(initialState) || isFunction(initialState),
+    '[redam] initialState must be object || function')
+  asserts(
+    isObject(actions) || Array.isArray(actions),
+    '[redam] actions must be object || array')
+  asserts(
+    isFunction(Consumer),
+    '[redam] Consumer is required')
+  asserts(
+    !options['providedKey'] || typeof options['providedKey'] === 'string',
+    '[redam] providedKey must be string')
 
   initialState = isFunction(initialState)
   ? initialState
@@ -200,9 +217,9 @@ export default (
 }
 
 const createComponent = (Consumer, initialState, actionsMap, options) => {
-  const RedamComponent = (props) =>
+  const RedamComponent = (userProps) =>
   <RedamProvider {...{
-    props,
+    userProps,
     Consumer,
     initialState,
     actionsMap,
@@ -214,9 +231,13 @@ const createComponent = (Consumer, initialState, actionsMap, options) => {
 
 type ProviderProps = {
   [key: Key]: PropsValue,
+  userProps: Props,
   Consumer: ConsumerComponent,
   initialState: InitialState,
-  actionsMap: ActionsMap
+  actionsMap: ActionsMap,
+  options: {
+    providedKey: ProvidedKey
+  }
 }
 
 class RedamProvider extends React.Component<ProviderProps, State> {
@@ -235,21 +256,21 @@ class RedamProvider extends React.Component<ProviderProps, State> {
       dispatcher: { dispatch },
       props: {
         Consumer,
-        props,
+        userProps,
         options: { providedKey }
       },
     } = this
     
-    return <Consumer {...props} {...{ [providedKey]: { dispatch, state } }} />
+    return <Consumer {...userProps} {...{ [providedKey]: { dispatch, state } }} />
   }
 }
 
 const createSingletonComponent = (Consumer, initialState, actionsMap, options) => {
   const dispatcher = new Dispatcher(initialState, actionsMap)
   
-  const RedamSingletonComponent = (props) =>
+  const RedamSingletonComponent = (userProps) =>
   <RedamSingletonProvider {...{
-    props,
+    userProps,
     Consumer,
     dispatcher,
     options
@@ -261,8 +282,12 @@ const createSingletonComponent = (Consumer, initialState, actionsMap, options) =
 
 type SingletonProviderProps = {
   [key: Key]: PropsValue,
+  userProps: Props,
   Consumer: ConsumerComponent,
-  dispatcher: Dispatcher
+  dispatcher: Dispatcher,
+  options: {
+    providedKey: ProvidedKey
+  }
 }
 
 class RedamSingletonProvider extends React.Component<SingletonProviderProps, State> {
@@ -278,12 +303,12 @@ class RedamSingletonProvider extends React.Component<SingletonProviderProps, Sta
       state,
       props: {
         Consumer,
-        props,
+        userProps,
         dispatcher: { dispatch },
         options: { providedKey }
       }
     } = this
     
-    return <Consumer {...props} {...{ [providedKey]: { dispatch, state } }} />
+    return <Consumer {...userProps} {...{ [providedKey]: { dispatch, state } }} />
   }
 }
