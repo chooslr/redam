@@ -1,12 +1,16 @@
-import flow from 'rollup-plugin-flow'
-import babel from 'rollup-plugin-babel'
-import external from 'rollup-plugin-auto-external'
-import prettier from 'rollup-plugin-prettier'
-import uglify from 'rollup-plugin-uglify'
+import Flow from 'rollup-plugin-flow'
+import Babel from 'rollup-plugin-babel'
+import AutoExternal from 'rollup-plugin-auto-external'
+import Prettier from 'rollup-plugin-prettier'
+import { uglify as Uglify } from 'rollup-plugin-uglify'
 import { minify } from 'uglify-es'
 
 const input = `./index.js`
 const file = mid => `dist/${mid}.js`
+
+const flow = Flow()
+const babel = Babel({ exclude: 'node_modules/**' })
+const autoexternal = AutoExternal({ builtins: true, dependencies: true })
 
 export default [
   {
@@ -16,20 +20,30 @@ export default [
       { format: 'es', file: file('es') }
     ],
     plugins: [
-      flow(),
-      babel({ exclude: 'node_modules/**' }),
-      external({ builtins: true, dependencies: true }),
-      prettier({ tabWidth: 2, semi: false, singleQuote: true })
+      flow,
+      babel,
+      autoexternal,
+      Prettier({
+        parser: 'babylon',
+        tabWidth: 2,
+        semi: false,
+        singleQuote: true
+      })
     ]
   },
   {
     input,
-    output: { format: 'umd', file: file('min'), name: 'Redam', globals: { react: 'React' } },
+    output: {
+      format: 'umd',
+      file: file('min'),
+      name: 'Redam',
+      globals: { react: 'React' }
+    },
     plugins: [
-      flow(),
-      babel({ exclude: 'node_modules/**' }),
-      external({ builtins: true, dependencies: true }),
-      uglify({}, minify)
+      flow,
+      babel,
+      autoexternal,
+      Uglify({}, minify)
     ]
   }
 ]

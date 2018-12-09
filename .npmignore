@@ -1,7 +1,7 @@
 .circleci/
-.babelrc
 .flowconfig
 .gitignore
+babel.config.js
 codecov.yml
 index.js
 rollup.config.js
