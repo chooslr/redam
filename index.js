@@ -183,10 +183,7 @@ type Provided = {
   dispatch: DispatchFn
 }
 
-type ConsumerProps = {
-  [providedKey: ProvidedKey]: Provided,
-  [key: Key]: PropsValue,
-}
+type ConsumerProps = { [key: Key]: Provided | PropsValue }
 
 type ConsumerComponent = React$ComponentType<ConsumerProps>
 
