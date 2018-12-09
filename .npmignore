@@ -1,4 +1,5 @@
 .circleci/
+.nyc_output/
 .flowconfig
 .gitignore
 babel.config.js
