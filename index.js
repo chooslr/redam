@@ -184,8 +184,8 @@ type Provided = {
 }
 
 type ConsumerProps = {
+  [providedKey: ProvidedKey]: Provided,
   [key: Key]: PropsValue,
-  [providedKey: ProvidedKey]: Provided
 }
 
 type ConsumerComponent = React$ComponentType<ConsumerProps>
@@ -306,7 +306,7 @@ type SingletonProviderProps = {
 }
 
 class RedamSingletonProvider extends React.Component<SingletonProviderProps, State> {
-  constructor(props: ProviderProps): void {
+  constructor(props: SingletonProviderProps): void {
     super(props)
     this.props.dispatcher.attach(this)
   }
